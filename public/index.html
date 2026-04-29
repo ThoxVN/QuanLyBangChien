@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản Lý Vạn Xà Chi Cốc</title>
+    <style>
+        /* CSS Giao diện Dark Mode Hiện Đại */
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        h1 { text-align: center; margin-bottom: 20px; color: #38bdf8; text-transform: uppercase; letter-spacing: 2px;}
+
+        .main-layout { display: flex; gap: 20px; align-items: flex-start; }
+
+        /* CỘT TRÁI */
+        .left-panel { flex: 2; }
+        .teams-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
+        .team-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .team-header { background: #334155; text-align: center; padding: 8px; font-weight: bold; color: #94a3b8; display: flex; justify-content: space-between; align-items: center;}
+        .team-count { font-size: 11px; background: #0f172a; padding: 2px 6px; border-radius: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;}
+        .team-members { padding: 10px; flex-grow: 1; min-height: 120px; }
+        .team-action { padding: 10px; text-align: center; border-top: 1px dashed #334155;}
+        
+        .btn-add-team { background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 13px; font-weight: bold; transition: 0.2s;}
+        .btn-add-team:hover { background: #0284c7; }
+
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 3px 6px; font-size: 10px; margin-left: 5px; opacity: 0.8;}
+        .btn-remove:hover { background: #dc2626; opacity: 1;}
+
+        /* CỘT PHẢI */
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .form-container { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row input, .form-row select { padding: 10px; border: 1px solid #475569; border-radius: 4px; background: #0f172a; color: white; outline: none; flex: 1; }
+        .btn-create { background: #10b981; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-create:hover { background: #059669; }
+
+        /* Danh sách chờ */
+        .master-list-container { background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 15px; min-height: 400px; }
+        .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 10px;}
+        .list-header h3 { margin: 0; font-size: 16px; color: #f87171; }
+        .selected-count { font-size: 12px; color: #10b981; font-weight: bold;}
+        .instruction { font-size: 13px; color: #94a3b8; margin-bottom: 10px; font-style: italic; }
+
+        /* BỘ LỌC TÌM KIẾM */
+        .filter-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .filter-container input, .filter-container select { 
+            padding: 8px; border: 1px solid #475569; border-radius: 4px; 
+            background: #0f172a; color: white; outline: none; flex: 1; font-size: 13px;
+        }
+
+        /* LƯỚI 2 CỘT CHO DANH SÁCH CHỜ */
+        #waiting-list { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; /* Chia 2 cột bằng nhau */
+            gap: 10px; 
+            max-height: 500px; 
+            overflow-y: auto; /* Thêm thanh cuộn nếu danh sách quá dài */
+            padding-right: 5px;
+        }
+
+        /* Style thanh cuộn */
+        #waiting-list::-webkit-scrollbar { width: 6px; }
+        #waiting-list::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px;}
+        #waiting-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px;}
+
+        .member-item { padding: 8px; border-bottom: 1px solid #334155; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .member-info { display: flex; align-items: center; gap: 8px; }
+        
+        .member-selectable { cursor: pointer; transition: 0.2s; border-radius: 4px; border: 1px solid transparent; border-bottom: none; background: #0f172a;}
+        .member-selectable:hover { background: #334155; }
+        .member-selected { background: #1e293b !important; border: 1px solid #10b981 !important; border-left: 4px solid #10b981 !important; }
+        
+        .job-tag { font-size: 10px; background: #475569; padding: 3px 5px; border-radius: 4px; color: #fff; white-space: nowrap;}
+        
+        .hint-text { font-size: 12px; color: #64748b; margin-top: 5px; display: block; }
+        .colored-name { font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;}
+    </style>
+</head>
+<body>
+    <h1>Phân Bổ Vạn Xà Chi Cốc</h1>
+    
+    <div class="main-layout">
+        <div class="left-panel">
+            <div id="teams" class="teams-grid">
+                </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-container">
+                <div class="form-row">
+                    <input type="text" id="name" placeholder="VD: Sát Y, Kiến Quỷ...">
+                    <select id="job">
+                        <option value="Thần Tương">Thần Tương</option> <option value="Huyết Hà">Huyết Hà</option>
+                        <option value="Thiết Y">Thiết Y</option>
+                        <option value="Cửu Linh">Cửu Linh</option>
+                        <option value="Toái Mộng">Toái Mộng</option>
+                        <option value="Tố Vấn">Tố Vấn</option>
+                        <option value="Long Ngâm">Long Ngâm</option>
+                    </select>
+                </div>
+                <span class="hint-text">* Có thể nhập nhiều người cùng lúc, cách nhau bằng dấu phẩy (,)</span>
+                <button onclick="createNewMember()" class="btn-create">Tạo mới vào Danh Sách</button>
+            </div>
+
+            <div class="master-list-container">
+                <div class="list-header">
+                    <h3>Danh sách chờ</h3>
+                    <span id="selected-counter" class="selected-count">Đã chọn: 0</span>
+                </div>
+                
+                <div class="filter-container">
+                    <input type="text" id="filter-name" placeholder="🔍 Tìm theo tên..." oninput="renderUI()">
+                    <select id="filter-job" onchange="renderUI()">
+                        <option value="">Tất cả Class</option>
+                        <option value="Thần Tương">Thần Tương</option> <option value="Huyết Hà">Huyết Hà</option>
+                        <option value="Thiết Y">Thiết Y</option>
+                        <option value="Cửu Linh">Cửu Linh</option>
+                        <option value="Toái Mộng">Toái Mộng</option>
+                        <option value="Tố Vấn">Tố Vấn</option>
+                        <option value="Long Ngâm">Long Ngâm</option>
+                    </select>
+                </div>
+
+                <div class="instruction">👉 Click để chọn/bỏ chọn. 👉 Bấm "Bố trí vào đây" ở cột trái.</div>
+                <div id="waiting-list">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalMembers = []; // Biến toàn cục lưu toàn bộ data từ server
+        let selectedMemberIds = []; 
+
+        const JOB_COLORS = {
+            "Thần Tương": "#3b82f6", // Đã sửa
+            "Huyết Hà": "#ef4444",   
+            "Thiết Y": "#facc15",    
+            "Cửu Linh": "#a855f7",   
+            "Toái Mộng": "#06b6d4",  
+            "Tố Vấn": "#ec4899",     
+            "Long Ngâm": "#4ade80"   
+        };
+
+        const JOB_ABBREVIATIONS = {
+            "Thần Tương": "TT", // Đã sửa
+            "Huyết Hà": "HH",
+            "Thiết Y": "TY",
+            "Cửu Linh": "CL",
+            "Toái Mộng": "TM",
+            "Tố Vấn": "TV",
+            "Long Ngâm": "LN"
+        };
+
+        function getColorByJob(job) {
+            return JOB_COLORS[job] || "#e2e8f0";
+        }
+
+        // 1. Chỉ gọi API khi load lại dữ liệu
+        async function loadMembers() {
+            const res = await fetch('/api/members');
+            globalMembers = await res.json();
+            renderUI(); // Render giao diện sau khi có data
+        }
+
+        // 2. Hàm vẽ giao diện (sẽ được gọi lại mỗi khi gõ filter mà không tốn tải server)
+        function renderUI() {
+            const teamsDiv = document.getElementById('teams');
+            const waitingListDiv = document.getElementById('waiting-list');
+            const counterSpan = document.getElementById('selected-counter');
+            
+            teamsDiv.innerHTML = '';
+            waitingListDiv.innerHTML = '';
+            
+            counterSpan.innerText = `Đã chọn: ${selectedMemberIds.length}`;
+
+            // RENDER TEAMS
+            for(let i = 1; i <= 10; i++) {
+                const teamMembers = globalMembers.filter(m => m.teamId == i);
+                
+                const classCounts = {};
+                teamMembers.forEach(m => {
+                    classCounts[m.job] = (classCounts[m.job] || 0) + 1;
+                });
+
+                let countHtml = '';
+                if (teamMembers.length === 0) {
+                    countHtml = '<span style="color: #64748b;">Trống</span>';
+                } else {
+                    Object.entries(classCounts).forEach(([job, count]) => {
+                        const abbr = JOB_ABBREVIATIONS[job] || "K";
+                        const color = getColorByJob(job);
+                        countHtml += `<span style="color: ${color}; font-weight: bold;" title="${count} ${job}">${count}${abbr}</span>`;
+                    });
+                }
+
+                let html = `
+                    <div class="team-card">
+                        <div class="team-header">
+                            <span>TEAM ${i}</span>
+                            <span class="team-count">${countHtml}</span>
+                        </div>
+                        <div class="team-members">
+                `;
+                
+                teamMembers.forEach(m => {
+                    const color = getColorByJob(m.job);
+                    html += `
+                        <div class="member-item">
+                            <div class="member-info">
+                                <span class="colored-name" title="${m.name}" style="color: ${color};">${m.name}</span> 
+                            </div>
+                            <button class="btn-remove" onclick="removeFromTeam('${m._id}')" title="Đưa về danh sách chờ">✖</button>
+                        </div>`;
+                });
+                html += `</div>
+                         <div class="team-action">
+                            <button class="btn-add-team" onclick="assignSelectedToTeam(${i})">Bố trí vào đây</button>
+                         </div>
+                    </div>`;
+                teamsDiv.innerHTML += html;
+            }
+
+            // RENDER DANH SÁCH CHỜ (KÈM BỘ LỌC)
+            const filterName = document.getElementById('filter-name').value.toLowerCase();
+            const filterJob = document.getElementById('filter-job').value;
+
+            // Lấy những người chưa có nhóm
+            let waitingMembers = globalMembers.filter(m => m.teamId === 0);
+
+            // Xử lý Lọc
+            waitingMembers = waitingMembers.filter(m => {
+                const matchName = m.name.toLowerCase().includes(filterName);
+                const matchJob = filterJob === "" || m.job === filterJob;
+                return matchName && matchJob;
+            });
+
+            // Vẽ ra màn hình
+            waitingMembers.forEach(m => {
+                const isSelectedClass = selectedMemberIds.includes(m._id) ? 'member-selected' : '';
+                const color = getColorByJob(m.job);
+                const abbr = JOB_ABBREVIATIONS[m.job] || m.job; // Dùng chữ viết tắt cho gọn cột
+                
+                waitingListDiv.innerHTML += `
+                    <div class="member-item member-selectable ${isSelectedClass}" onclick="toggleSelectMember('${m._id}')">
+                        <span class="colored-name" title="${m.name}" style="color: ${color};">${m.name}</span>
+                        <span class="job-tag" title="${m.job}">${abbr}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleSelectMember(id) {
+            const index = selectedMemberIds.indexOf(id);
+            if (index > -1) {
+                selectedMemberIds.splice(index, 1);
+            } else {
+                selectedMemberIds.push(id);
+            }
+            renderUI(); // Chỉ render lại UI, không gọi API
+        }
+
+        async function createNewMember() {
+            const nameInput = document.getElementById('name').value;
+            const job = document.getElementById('job').value;
+
+            if(nameInput.trim() === '') {
+                alert("Bạn chưa nhập tên thành viên!");
+                return;
+            }
+
+            const namesArray = nameInput.split(',').map(n => n.trim()).filter(n => n !== '');
+            const promises = namesArray.map(name => {
+                return fetch('/api/members', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, job: job }) 
+                });
+            });
+
+            await Promise.all(promises);
+            document.getElementById('name').value = ''; 
+            loadMembers(); // Lấy data mới nhất từ DB
+        }
+
+        async function assignSelectedToTeam(teamId) {
+            if(selectedMemberIds.length === 0) {
+                alert("Vui lòng chọn ít nhất 1 thành viên ở Danh sách chờ (bên phải) trước!");
+                return;
+            }
+
+            const promises = selectedMemberIds.map(id => {
+                return fetch(`/api/members/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ teamId: teamId })
+                });
+            });
+
+            await Promise.all(promises); 
+            selectedMemberIds = []; 
+            
+            // Xóa nội dung tìm kiếm để hiện lại full danh sách sau khi chuyển team
+            document.getElementById('filter-name').value = '';
+            document.getElementById('filter-job').value = '';
+            
+            loadMembers(); 
+        }
+
+        async function removeFromTeam(id) {
+            await fetch(`/api/members/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teamId: 0 })
+            });
+            
+            const index = selectedMemberIds.indexOf(id);
+            if(index > -1) selectedMemberIds.splice(index, 1);
+            
+            loadMembers();
+        }
+
+        loadMembers(); // Chạy lần đầu
+    </script>
+</body>
+</html>
