@@ -38,29 +38,34 @@
         .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 10px;}
         .list-header h3 { margin: 0; font-size: 16px; color: #f87171; }
         .selected-count { font-size: 12px; color: #10b981; font-weight: bold;}
-        .instruction { font-size: 13px; color: #94a3b8; margin-bottom: 10px; font-style: italic; }
+        
+        /* CSS MỚI: DÒNG TỔNG KẾT (SUMMARY) */
+        .waiting-summary {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .summary-total { color: #38bdf8; font-weight: bold; border-right: 1px solid #334155; padding-right: 10px; margin-right: 10px; }
+        .summary-item { margin-right: 8px; display: inline-block; }
 
-        /* BỘ LỌC TÌM KIẾM */
         .filter-container { display: flex; gap: 10px; margin-bottom: 15px; }
         .filter-container input, .filter-container select { 
             padding: 8px; border: 1px solid #475569; border-radius: 4px; 
             background: #0f172a; color: white; outline: none; flex: 1; font-size: 13px;
         }
 
-        /* LƯỚI 2 CỘT CHO DANH SÁCH CHỜ */
         #waiting-list { 
             display: grid; 
-            grid-template-columns: 1fr 1fr; /* Chia 2 cột bằng nhau */
+            grid-template-columns: 1fr 1fr; 
             gap: 10px; 
             max-height: 500px; 
-            overflow-y: auto; /* Thêm thanh cuộn nếu danh sách quá dài */
+            overflow-y: auto; 
             padding-right: 5px;
         }
-
-        /* Style thanh cuộn */
-        #waiting-list::-webkit-scrollbar { width: 6px; }
-        #waiting-list::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px;}
-        #waiting-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px;}
 
         .member-item { padding: 8px; border-bottom: 1px solid #334155; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
         .member-info { display: flex; align-items: center; gap: 8px; }
@@ -70,7 +75,6 @@
         .member-selected { background: #1e293b !important; border: 1px solid #10b981 !important; border-left: 4px solid #10b981 !important; }
         
         .job-tag { font-size: 10px; background: #475569; padding: 3px 5px; border-radius: 4px; color: #fff; white-space: nowrap;}
-        
         .hint-text { font-size: 12px; color: #64748b; margin-top: 5px; display: block; }
         .colored-name { font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;}
     </style>
@@ -78,10 +82,15 @@
 <body>
     <h1>Phân Bổ Vạn Xà Chi Cốc</h1>
     
+    <div style="text-align: center; margin-bottom: 30px;">
+        <a href="/map.html" style="background: #3b82f6; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; border: 1px solid #2563eb; transition: 0.2s;">
+            🗺️ Mở Bản Đồ Chiến Thuật
+        </a>
+    </div>
+
     <div class="main-layout">
         <div class="left-panel">
-            <div id="teams" class="teams-grid">
-                </div>
+            <div id="teams" class="teams-grid"></div>
         </div>
 
         <div class="right-panel">
@@ -89,7 +98,8 @@
                 <div class="form-row">
                     <input type="text" id="name" placeholder="VD: Sát Y, Kiến Quỷ...">
                     <select id="job">
-                        <option value="Thần Tương">Thần Tương</option> <option value="Huyết Hà">Huyết Hà</option>
+                        <option value="Thần Tương">Thần Tương</option>
+                        <option value="Huyết Hà">Huyết Hà</option>
                         <option value="Thiết Y">Thiết Y</option>
                         <option value="Cửu Linh">Cửu Linh</option>
                         <option value="Toái Mộng">Toái Mộng</option>
@@ -106,12 +116,16 @@
                     <h3>Danh sách chờ</h3>
                     <span id="selected-counter" class="selected-count">Đã chọn: 0</span>
                 </div>
-                
+
+                <div id="waiting-summary" class="waiting-summary">
+                    </div>
+
                 <div class="filter-container">
                     <input type="text" id="filter-name" placeholder="🔍 Tìm theo tên..." oninput="renderUI()">
                     <select id="filter-job" onchange="renderUI()">
                         <option value="">Tất cả Class</option>
-                        <option value="Thần Tương">Thần Tương</option> <option value="Huyết Hà">Huyết Hà</option>
+                        <option value="Thần Tương">Thần Tương</option>
+                        <option value="Huyết Hà">Huyết Hà</option>
                         <option value="Thiết Y">Thiết Y</option>
                         <option value="Cửu Linh">Cửu Linh</option>
                         <option value="Toái Mộng">Toái Mộng</option>
@@ -120,206 +134,158 @@
                     </select>
                 </div>
 
-                <div class="instruction">👉 Click để chọn/bỏ chọn. 👉 Bấm "Bố trí vào đây" ở cột trái.</div>
-                <div id="waiting-list">
-                    </div>
+                <div id="waiting-list"></div>
             </div>
         </div>
     </div>
 
     <script>
-        let globalMembers = []; // Biến toàn cục lưu toàn bộ data từ server
+        let globalMembers = []; 
+        let globalTeams = [];
         let selectedMemberIds = []; 
 
-        const JOB_COLORS = {
-            "Thần Tương": "#3b82f6", // Đã sửa
-            "Huyết Hà": "#ef4444",   
-            "Thiết Y": "#facc15",    
-            "Cửu Linh": "#a855f7",   
-            "Toái Mộng": "#06b6d4",  
-            "Tố Vấn": "#ec4899",     
-            "Long Ngâm": "#4ade80"   
-        };
+        const JOB_COLORS = { "Thần Tương": "#3b82f6", "Huyết Hà": "#ef4444", "Thiết Y": "#facc15", "Cửu Linh": "#a855f7", "Toái Mộng": "#06b6d4", "Tố Vấn": "#ec4899", "Long Ngâm": "#4ade80" };
+        const JOB_ABBREVIATIONS = { "Thần Tương": "TT", "Huyết Hà": "HH", "Thiết Y": "TY", "Cửu Linh": "CL", "Toái Mộng": "TM", "Tố Vấn": "TV", "Long Ngâm": "LN" };
 
-        const JOB_ABBREVIATIONS = {
-            "Thần Tương": "TT", // Đã sửa
-            "Huyết Hà": "HH",
-            "Thiết Y": "TY",
-            "Cửu Linh": "CL",
-            "Toái Mộng": "TM",
-            "Tố Vấn": "TV",
-            "Long Ngâm": "LN"
-        };
+        function getColorByJob(job) { return JOB_COLORS[job] || "#e2e8f0"; }
 
-        function getColorByJob(job) {
-            return JOB_COLORS[job] || "#e2e8f0";
-        }
-
-        // 1. Chỉ gọi API khi load lại dữ liệu
         async function loadMembers() {
-            const res = await fetch('/api/members');
-            globalMembers = await res.json();
-            renderUI(); // Render giao diện sau khi có data
+            const [resMembers, resTeams] = await Promise.all([
+                fetch('/api/members'),
+                fetch('/api/teams')
+            ]);
+            globalMembers = await resMembers.json();
+            globalTeams = await resTeams.json();
+            renderUI(); 
         }
 
-        // 2. Hàm vẽ giao diện (sẽ được gọi lại mỗi khi gõ filter mà không tốn tải server)
         function renderUI() {
             const teamsDiv = document.getElementById('teams');
             const waitingListDiv = document.getElementById('waiting-list');
+            const summaryDiv = document.getElementById('waiting-summary');
             const counterSpan = document.getElementById('selected-counter');
             
             teamsDiv.innerHTML = '';
             waitingListDiv.innerHTML = '';
-            
             counterSpan.innerText = `Đã chọn: ${selectedMemberIds.length}`;
 
-            // RENDER TEAMS
+            // 1. RENDER TEAMS
             for(let i = 1; i <= 10; i++) {
                 const teamMembers = globalMembers.filter(m => m.teamId == i);
+                const teamConfig = globalTeams.find(t => t.teamId == i) || {};
+                const tName = teamConfig.name || `TEAM ${i}`;
+                const tColor = teamConfig.color || (i <= 5 ? '#ef4444' : '#3b82f6');
                 
                 const classCounts = {};
-                teamMembers.forEach(m => {
-                    classCounts[m.job] = (classCounts[m.job] || 0) + 1;
+                teamMembers.forEach(m => { classCounts[m.job] = (classCounts[m.job] || 0) + 1; });
+
+                let countHtml = teamMembers.length === 0 ? '<span style="color: #64748b;">Trống</span>' : '';
+                Object.entries(classCounts).forEach(([job, count]) => {
+                    countHtml += `<span style="color: ${getColorByJob(job)}; font-weight: bold;" title="${count} ${job}">${count}${JOB_ABBREVIATIONS[job]}</span>`;
                 });
 
-                let countHtml = '';
-                if (teamMembers.length === 0) {
-                    countHtml = '<span style="color: #64748b;">Trống</span>';
-                } else {
-                    Object.entries(classCounts).forEach(([job, count]) => {
-                        const abbr = JOB_ABBREVIATIONS[job] || "K";
-                        const color = getColorByJob(job);
-                        countHtml += `<span style="color: ${color}; font-weight: bold;" title="${count} ${job}">${count}${abbr}</span>`;
-                    });
-                }
-
-                let html = `
-                    <div class="team-card">
-                        <div class="team-header">
-                            <span>TEAM ${i}</span>
-                            <span class="team-count">${countHtml}</span>
+                let html = `<div class="team-card" style="border-top: 3px solid ${tColor};">
+                    <div class="team-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="color" value="${tColor}" onchange="updateTeamConfig(${i}, {color: this.value})" style="width: 15px; height: 15px; border:none; cursor:pointer; background:none; outline:none;">
+                            <span style="cursor: pointer; color: ${tColor};" onclick="promptTeamName(${i}, '${tName}')" title="Bấm để đổi tên">${tName} ✏️</span>
                         </div>
-                        <div class="team-members">
-                `;
+                        <span class="team-count">${countHtml}</span>
+                    </div>
+                    <div class="team-members">`;
                 
                 teamMembers.forEach(m => {
-                    const color = getColorByJob(m.job);
-                    html += `
-                        <div class="member-item">
-                            <div class="member-info">
-                                <span class="colored-name" title="${m.name}" style="color: ${color};">${m.name}</span> 
-                            </div>
-                            <button class="btn-remove" onclick="removeFromTeam('${m._id}')" title="Đưa về danh sách chờ">✖</button>
-                        </div>`;
-                });
-                html += `</div>
-                         <div class="team-action">
-                            <button class="btn-add-team" onclick="assignSelectedToTeam(${i})">Bố trí vào đây</button>
-                         </div>
+                    html += `<div class="member-item">
+                        <span class="colored-name" title="${m.name}" style="color: ${getColorByJob(m.job)};">${m.name}</span> 
+                        <button class="btn-remove" onclick="removeFromTeam('${m._id}')" title="Về danh sách chờ">✖</button>
                     </div>`;
+                });
+                html += `</div><div class="team-action">
+                    <button class="btn-add-team" style="background: ${tColor}80;" onmouseover="this.style.background='${tColor}'" onmouseout="this.style.background='${tColor}80'" onclick="assignSelectedToTeam(${i})">Bố trí</button>
+                </div></div>`;
                 teamsDiv.innerHTML += html;
             }
 
-            // RENDER DANH SÁCH CHỜ (KÈM BỘ LỌC)
+            // 2. LOGIC TỔNG KẾT (SUMMARY) TẤT CẢ THÀNH VIÊN TRONG HỆ THỐNG
+            const totalMembers = globalMembers.length;
+            
+            const summaryCounts = {};
+            globalMembers.forEach(m => {
+                summaryCounts[m.job] = (summaryCounts[m.job] || 0) + 1;
+            });
+
+            let summaryHtml = `<span class="summary-total">Tổng Bang: ${totalMembers}</span>`;
+            Object.keys(JOB_COLORS).forEach(job => {
+                if(summaryCounts[job]) {
+                    summaryHtml += `<span class="summary-item" style="color: ${JOB_COLORS[job]}">${summaryCounts[job]}${JOB_ABBREVIATIONS[job]}</span>`;
+                }
+            });
+            summaryDiv.innerHTML = totalMembers > 0 ? summaryHtml : "Hệ thống chưa có thành viên nào.";
+
+            // 3. RENDER DANH SÁCH CHỜ CÓ BỘ LỌC
             const filterName = document.getElementById('filter-name').value.toLowerCase();
             const filterJob = document.getElementById('filter-job').value;
 
-            // Lấy những người chưa có nhóm
-            let waitingMembers = globalMembers.filter(m => m.teamId === 0);
+            const waitingMembersFull = globalMembers.filter(m => m.teamId === 0);
 
-            // Xử lý Lọc
-            waitingMembers = waitingMembers.filter(m => {
-                const matchName = m.name.toLowerCase().includes(filterName);
-                const matchJob = filterJob === "" || m.job === filterJob;
-                return matchName && matchJob;
+            const filteredWaiting = waitingMembersFull.filter(m => {
+                return m.name.toLowerCase().includes(filterName) && (filterJob === "" || m.job === filterJob);
             });
 
-            // Vẽ ra màn hình
-            waitingMembers.forEach(m => {
-                const isSelectedClass = selectedMemberIds.includes(m._id) ? 'member-selected' : '';
-                const color = getColorByJob(m.job);
-                const abbr = JOB_ABBREVIATIONS[m.job] || m.job; // Dùng chữ viết tắt cho gọn cột
-                
+            filteredWaiting.forEach(m => {
+                const isSelected = selectedMemberIds.includes(m._id) ? 'member-selected' : '';
                 waitingListDiv.innerHTML += `
-                    <div class="member-item member-selectable ${isSelectedClass}" onclick="toggleSelectMember('${m._id}')">
-                        <span class="colored-name" title="${m.name}" style="color: ${color};">${m.name}</span>
-                        <span class="job-tag" title="${m.job}">${abbr}</span>
-                    </div>
-                `;
+                    <div class="member-item member-selectable ${isSelected}" onclick="toggleSelectMember('${m._id}')">
+                        <span class="colored-name" title="${m.name}" style="color: ${getColorByJob(m.job)};">${m.name}</span>
+                        <span class="job-tag" title="${m.job}">${JOB_ABBREVIATIONS[m.job]}</span>
+                    </div>`;
             });
         }
 
+        // --- CÁC HÀM XỬ LÝ SỰ KIỆN ---
+        function promptTeamName(teamId, currentName) {
+            const newName = prompt("Nhập tên mới:", currentName);
+            if(newName && newName.trim() !== "") updateTeamConfig(teamId, { name: newName.trim() });
+        }
+        async function updateTeamConfig(teamId, data) {
+            await fetch(`/api/teams/${teamId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            loadMembers();
+        }
         function toggleSelectMember(id) {
-            const index = selectedMemberIds.indexOf(id);
-            if (index > -1) {
-                selectedMemberIds.splice(index, 1);
-            } else {
-                selectedMemberIds.push(id);
-            }
-            renderUI(); // Chỉ render lại UI, không gọi API
+            const idx = selectedMemberIds.indexOf(id);
+            if (idx > -1) selectedMemberIds.splice(idx, 1);
+            else selectedMemberIds.push(id);
+            renderUI(); 
         }
-
         async function createNewMember() {
-            const nameInput = document.getElementById('name').value;
+            const names = document.getElementById('name').value.split(',').map(n => n.trim()).filter(n => n);
             const job = document.getElementById('job').value;
-
-            if(nameInput.trim() === '') {
-                alert("Bạn chưa nhập tên thành viên!");
-                return;
-            }
-
-            const namesArray = nameInput.split(',').map(n => n.trim()).filter(n => n !== '');
-            const promises = namesArray.map(name => {
-                return fetch('/api/members', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, job: job }) 
-                });
-            });
-
-            await Promise.all(promises);
-            document.getElementById('name').value = ''; 
-            loadMembers(); // Lấy data mới nhất từ DB
-        }
-
-        async function assignSelectedToTeam(teamId) {
-            if(selectedMemberIds.length === 0) {
-                alert("Vui lòng chọn ít nhất 1 thành viên ở Danh sách chờ (bên phải) trước!");
-                return;
-            }
-
-            const promises = selectedMemberIds.map(id => {
-                return fetch(`/api/members/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ teamId: teamId })
-                });
-            });
-
-            await Promise.all(promises); 
-            selectedMemberIds = []; 
+            if(names.length === 0) return alert("Chưa nhập tên!");
             
-            // Xóa nội dung tìm kiếm để hiện lại full danh sách sau khi chuyển team
+            await Promise.all(names.map(name => fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, job }) })));
+            document.getElementById('name').value = '';
+            loadMembers();
+        }
+        async function assignSelectedToTeam(teamId) {
+            if(selectedMemberIds.length === 0) return alert("Chọn người trước!");
+            await Promise.all(selectedMemberIds.map(id => fetch(`/api/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId }) })));
+            selectedMemberIds = [];
+            
             document.getElementById('filter-name').value = '';
             document.getElementById('filter-job').value = '';
             
-            loadMembers(); 
+            loadMembers();
         }
-
         async function removeFromTeam(id) {
-            await fetch(`/api/members/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ teamId: 0 })
-            });
+            await fetch(`/api/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId: 0 }) });
             
-            const index = selectedMemberIds.indexOf(id);
-            if(index > -1) selectedMemberIds.splice(index, 1);
+            const idx = selectedMemberIds.indexOf(id);
+            if(idx > -1) selectedMemberIds.splice(idx, 1);
             
             loadMembers();
         }
-
-        loadMembers(); // Chạy lần đầu
+        
+        loadMembers(); 
     </script>
 </body>
 </html>

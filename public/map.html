@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Bản Đồ Chiến Thuật - Vạn Xà Chi Cốc</title>
+    <style>
+        /* CSS Base */
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        h1 { text-align: center; margin-bottom: 20px; color: #38bdf8; text-transform: uppercase; letter-spacing: 2px;}
+        
+        /* Thanh điều hướng */
+        .nav-bar { text-align: center; margin-bottom: 30px; }
+        .btn-nav { background: #1e293b; color: #38bdf8; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; border: 1px solid #38bdf8; transition: 0.2s;}
+        .btn-nav:hover { background: #38bdf8; color: #0f172a; }
+
+        /* Khung bản đồ */
+        .map-section { max-width: 1200px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);}
+        .map-container { position: relative; width: 100%; border-radius: 6px; overflow: hidden; border: 2px solid #0f172a; user-select: none; }
+        .map-bg { width: 100%; display: block; }
+
+        /* Marker Team */
+        .team-marker { 
+            position: absolute; transform: translate(-50%, -50%); 
+            display: flex; flex-direction: column; align-items: center; 
+            transition: 0.3s; z-index: 10;
+            cursor: grab;
+        }
+        
+        .team-marker:active { cursor: grabbing; z-index: 999; }
+        .team-marker:hover { z-index: 20; transform: translate(-50%, -50%) scale(1.1); }
+
+        .marker-badge { background: #0ea5e9; color: white; font-weight: bold; font-size: 16px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);}
+        
+        /* 1. Cập nhật CSS của marker-label để stack tên và count */
+        .marker-label { 
+            background: rgba(15, 23, 42, 0.9); color: #e2e8f0; font-size: 12px; font-weight: bold;
+            padding: 4px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid #334155; 
+            white-space: nowrap; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center; /* Stack theo chiều dọc */
+        }
+
+        /* 2. CHỨC NĂNG MỚI: Ẩn tên team mặc định */
+        .team-name {
+            display: none; /* Ẩn đi */
+        }
+
+        /* 3. CHỨC NĂNG MỚI: Chỉ hiển thị tên khi hover vào marker */
+        .team-marker:hover .team-name {
+            display: block; /* Hiện lên */
+            margin-bottom: 2px;
+        }
+
+        .marker-red .marker-badge { background: #ef4444; }
+        .marker-blue .marker-badge { background: #3b82f6; }
+        
+        .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Sơ Đồ Tác Chiến</h1>
+    
+    <div class="nav-bar">
+        <a href="/" class="btn-nav">⬅ Quay lại trang Quản Lý</a>
+    </div>
+
+    <div class="map-section">
+        <div class="map-container" id="tactical-map">
+            <img src="/img/mapbangchien.jpg" alt="Bản Đồ" class="map-bg" draggable="false">
+            <div id="map-markers-layer"></div>
+        </div>
+    </div>
+    
+    <div class="status-text">🟢 Dữ liệu đang được đồng bộ (Chủ động kéo thả vị trí để lưu chiến thuật)</div>
+
+    <script>
+        let isDragging = false;
+        let currentDragTeamId = null;
+
+        async function loadMapData() {
+            if (isDragging) return; 
+
+            try {
+                const resTeams = await fetch('/api/teams');
+                const teamPositions = await resTeams.json();
+
+                const resMembers = await fetch('/api/members');
+                const globalMembers = await resMembers.json();
+                
+                const markersLayer = document.getElementById('map-markers-layer');
+                markersLayer.innerHTML = '';
+
+                teamPositions.forEach(pos => {
+                    const teamId = pos.teamId;
+                    const teamMembersCount = globalMembers.filter(m => m.teamId == teamId).length;
+                    
+                    const tName = pos.name || `TEAM ${teamId}`;
+                    const tColor = pos.color || (pos.side === 'red' ? '#ef4444' : '#3b82f6');
+
+                    const countText = teamMembersCount === 0 ? `<span style="color:#f87171">Trống</span>` : `${teamMembersCount} TV`;
+
+                    // vẽ marker có lưu data-teamid để JS biết đang kéo team nào
+                    markersLayer.innerHTML += `
+                        <div class="team-marker" data-teamid="${teamId}" style="left: ${pos.x}%; top: ${pos.y}%;">
+                            <div class="marker-badge" style="background: ${tColor};">${teamId}</div>
+                            <div class="marker-label">
+                                <div class="team-name" style="color: ${tColor}; font-size: 13px;">${tName}</div>
+                                <div class="team-count">${countText}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu:", error);
+            }
+        }
+
+        // ==========================================
+        // LOGIC KÉO THẢ (DRAG & DROP)
+        // ==========================================
+        const mapContainer = document.getElementById('tactical-map');
+
+        mapContainer.addEventListener('mousedown', (e) => {
+            const marker = e.target.closest('.team-marker');
+            if (marker) {
+                isDragging = true;
+                currentDragTeamId = marker.getAttribute('data-teamid');
+                marker.style.transition = 'none'; 
+                marker.style.cursor = 'grabbing';
+            }
+        });
+
+        mapContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging || !currentDragTeamId) return;
+            
+            const marker = document.querySelector(`.team-marker[data-teamid="${currentDragTeamId}"]`);
+            if(!marker) return;
+
+            const rect = mapContainer.getBoundingClientRect();
+            let xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+            let yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+
+            xPercent = Math.max(0, Math.min(100, xPercent));
+            yPercent = Math.max(0, Math.min(100, yPercent));
+
+            marker.style.left = xPercent + '%';
+            marker.style.top = yPercent + '%';
+        });
+
+        window.addEventListener('mouseup', async (e) => {
+            if (isDragging && currentDragTeamId) {
+                const marker = document.querySelector(`.team-marker[data-teamid="${currentDragTeamId}"]`);
+                if(marker) {
+                    marker.style.transition = '0.3s'; 
+                    marker.style.cursor = 'grab';
+                    
+                    const x = parseFloat(marker.style.left);
+                    const y = parseFloat(marker.style.top);
+                    
+                    await fetch(`/api/teams/${currentDragTeamId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ x: x, y: y })
+                    });
+                }
+                
+                isDragging = false;
+                currentDragTeamId = null;
+            }
+        });
+        // ==========================================
+
+        loadMapData();
+        setInterval(loadMapData, 3000);
+    </script>
+</body>
+</html>

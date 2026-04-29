@@ -50,3 +50,44 @@ app.put('/api/members/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server đang chạy tại http://localhost:${PORT}`));
+
+// ==========================================
+// THÊM SCHEMA VÀ API LƯU TỌA ĐỘ BẢN ĐỒ TEAM
+// ==========================================
+const TeamSchema = new mongoose.Schema({
+    teamId: Number,
+    x: Number,
+    y: Number,
+    side: String,
+    name: String,   // Thêm: Tên custom của team
+    color: String   // Thêm: Màu hiển thị của team
+});
+const Team = mongoose.model('Team', TeamSchema);
+
+app.get('/api/teams', async (req, res) => {
+    let teams = await Team.find();
+    if (teams.length === 0) {
+        // Nếu DB trống, tạo sẵn 10 team kèm tên và màu mặc định
+        const defaultTeams = [];
+        for(let i=1; i<=10; i++) {
+            defaultTeams.push({
+                teamId: i, 
+                x: i<=5 ? 25 : 75, 
+                y: 50, 
+                side: i<=5 ? 'red' : 'blue',
+                name: `TEAM ${i}`,
+                color: i<=5 ? '#ef4444' : '#3b82f6'
+            });
+        }
+        await Team.insertMany(defaultTeams);
+        teams = await Team.find();
+    }
+    res.json(teams);
+});
+
+// API Cập nhật (Tọa độ, Tên, Màu sắc)
+app.put('/api/teams/:id', async (req, res) => {
+    // Dùng $set để chỉ cập nhật những trường được gửi lên
+    await Team.findOneAndUpdate({ teamId: req.params.id }, { $set: req.body });
+    res.json({ success: true, message: "Đã cập nhật Team" });
+});
