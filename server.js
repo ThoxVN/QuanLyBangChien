@@ -40,12 +40,23 @@ app.post('/api/members', async (req, res) => {
     res.json({ message: "Thêm thành công!", member: newMember });
 });
 
-// 3. API CẬP NHẬT (MỚI) - Để chuyển thành viên vào nhóm
+// ==========================================
+// 3. API CẬP NHẬT - Sửa mọi thông tin (Team, Tên, Class)
+// ==========================================
 app.put('/api/members/:id', async (req, res) => {
     const { id } = req.params;
-    const { teamId } = req.body;
-    await Member.findByIdAndUpdate(id, { teamId: teamId });
-    res.json({ success: true, message: "Đã chuyển nhóm!" });
+    // Dùng $set để cập nhật linh hoạt các trường được gửi lên
+    await Member.findByIdAndUpdate(id, { $set: req.body });
+    res.json({ success: true, message: "Đã cập nhật thành viên!" });
+});
+
+// ==========================================
+// 4. API XÓA (MỚI) - Xóa vĩnh viễn thành viên
+// ==========================================
+app.delete('/api/members/:id', async (req, res) => {
+    const { id } = req.params;
+    await Member.findByIdAndDelete(id);
+    res.json({ success: true, message: "Đã xóa thành viên!" });
 });
 
 const PORT = process.env.PORT || 3000;
